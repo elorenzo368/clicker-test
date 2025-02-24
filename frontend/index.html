@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Banana Clicker</title>
+  <style>
+    #banana {
+      width: 100px;
+      height: 100px;
+      position: absolute;
+      cursor: pointer;
+    }
+
+    #clicks {
+      font-size: 24px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Banana Clicker</h1>
+  <button id="connect-wallet">Conectar Wallet</button>
+  <p id="wallet-address">Wallet: No conectada</p>
+  <p id="clicks">Clics: 0</p>
+  <img id="banana" src="/banana.png" alt="Banana">
+  <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="text/javascript"></script>
+  <script src="./main.js"></script>
+</body>
+
+</html>
