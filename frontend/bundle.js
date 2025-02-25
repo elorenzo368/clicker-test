@@ -271,6 +271,7 @@ let clicks = 0;
 let isWalletConnected = false;
 let timerInterval;
 let currentWallet = null;
+let isValidated = false; // Nueva bandera para validar con backend
 
 function isRoninInstalled() {
     const hasRonin = window.ronin && (window.ronin.ethereum || window.ronin.provider);
@@ -291,7 +292,9 @@ function checkSession() {
             document.getElementById('logout').disabled = false;
             document.getElementById('status').textContent = '¡Conectado! Hacé clics en la banana.';
             loadClicks();
-            validateWallet(address);
+            validateWallet(address).then(() => {
+                isValidated = true; // Solo marcamos como validado si pasa el backend
+            }).catch(logout); // Si falla la validación, desconectar
         } else {
             localStorage.removeItem('bananaClickerSession');
             resetClicks();
@@ -317,7 +320,7 @@ function loadClicks() {
 }
 
 function saveClicks() {
-    if (currentWallet) {
+    if (currentWallet && isValidated) {
         const now = new Date();
         const hourStart = Math.floor(now.getTime() / (60 * 60 * 1000));
         localStorage.setItem(`bananaClicks_${currentWallet}`, JSON.stringify({
@@ -330,7 +333,7 @@ function saveClicks() {
 function resetClicks() {
     clicks = 0;
     document.getElementById('clicks').textContent = `Clics: ${clicks}`;
-    if (currentWallet) {
+    if (currentWallet && isValidated) {
         saveClicks();
     }
 }
@@ -345,8 +348,7 @@ async function validateWallet(address) {
     } catch (error) {
         if (error.code === 4001) {
             document.getElementById('status').textContent = 'Conexión rechazada por el usuario.';
-            logout();
-            return;
+            throw error; // Lanzar error para que se maneje en el catch superior
         }
         throw error;
     }
@@ -358,7 +360,7 @@ async function validateWallet(address) {
             address,
             signature,
             message,
-            ip: 'client-ip' // Placeholder
+            ip: 'client-ip'
         })
     });
 
@@ -366,7 +368,7 @@ async function validateWallet(address) {
     if (!result.success) {
         console.error('Validación fallida:', result.error);
         document.getElementById('status').textContent = 'Error al validar wallet: ' + result.error;
-        logout();
+        throw new Error('Validación fallida');
     }
 }
 
@@ -431,6 +433,7 @@ document.getElementById('connect-wallet').addEventListener('click', async () => 
             await validateWallet(address);
 
             isWalletConnected = true;
+            isValidated = true; // Solo validamos si todo pasa
             currentWallet = address;
             document.getElementById('connect-wallet').disabled = true;
             document.getElementById('logout').disabled = false;
@@ -443,9 +446,10 @@ document.getElementById('connect-wallet').addEventListener('click', async () => 
             loadClicks();
         } catch (error) {
             console.error('Error conectando Ronin Wallet:', error);
-            if (error.code !== 4001) { // Ignorar rechazo del usuario aquí
+            if (error.code !== 4001) {
                 alert('Error al conectar Ronin Wallet. Revisá la consola.');
             }
+            logout(); // Reiniciar si hay cualquier error
         }
     } else {
         alert('Por favor, asegurate de que Ronin Wallet esté instalada, activa y actualizada.');
@@ -454,6 +458,7 @@ document.getElementById('connect-wallet').addEventListener('click', async () => 
 
 function logout() {
     isWalletConnected = false;
+    isValidated = false; // Reiniciar validación
     currentWallet = null;
     localStorage.removeItem('bananaClickerSession');
     document.getElementById('wallet-address').textContent = 'Wallet: No conectada';
@@ -472,7 +477,7 @@ const containerWidth = gameContainer.offsetWidth - banana.offsetWidth;
 const containerHeight = gameContainer.offsetHeight - banana.offsetHeight;
 
 banana.addEventListener('click', async () => {
-    if (!isWalletConnected) {
+    if (!isWalletConnected || !isValidated) { // Bloquear clics si no está validado
         document.getElementById('status').textContent = 'Conectá tu wallet primero.';
         return;
     }
