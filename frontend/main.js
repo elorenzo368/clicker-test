@@ -41,11 +41,13 @@ function loadClicks() {
         const currentHour = Math.floor(now.getTime() / (60 * 60 * 1000));
         if (hourStart === currentHour) {
             clicks = savedClicks;
-            document.getElementById('clicks').textContent = `Clics: ${clicks}`;
         } else {
-            resetClicks();
+            clicks = 0; // Si la hora cambió, reiniciamos
         }
+    } else {
+        clicks = 0; // Si no hay datos para esta wallet, empezamos en 0
     }
+    document.getElementById('clicks').textContent = `Clics: ${clicks}`;
 }
 
 // Guardar clics en localStorage
@@ -129,7 +131,7 @@ document.getElementById('connect-wallet').addEventListener('click', async () => 
                 address: address,
                 timestamp: Date.now()
             }));
-            loadClicks();
+            loadClicks(); // Cargar clics de esta wallet
         } catch (error) {
             console.error('Error conectando Ronin Wallet:', error);
             alert('Error al conectar Ronin Wallet. Revisá la consola.');
@@ -148,8 +150,9 @@ document.getElementById('logout').addEventListener('click', () => {
     document.getElementById('connect-wallet').disabled = false;
     document.getElementById('logout').disabled = true;
     document.getElementById('status').textContent = 'Conectá tu wallet para empezar.';
-    document.getElementById('clicks').textContent = `Clicks: 0`;
-    // No tocamos los clics, se mantienen en localStorage
+    clicks = 0; // Mostrar 0 al desconectar
+    document.getElementById('clicks').textContent = `Clics: ${clicks}`;
+    // No borramos los clics guardados en localStorage
 });
 
 // Contar clics y mover banana dentro del contenedor
