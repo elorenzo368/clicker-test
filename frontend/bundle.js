@@ -270,6 +270,7 @@ const ethers = require('ethers');
 let clicks = 0;
 let isWalletConnected = false;
 let timerInterval;
+let currentWallet = null;
 
 // Función para detectar Ronin Wallet
 function isRoninInstalled() {
@@ -283,15 +284,55 @@ function checkSession() {
     if (sessionData) {
         const { address, timestamp } = JSON.parse(sessionData);
         const now = Date.now();
-        const fifteenMinutes = 15 * 60 * 1000; // 15 minutos en milisegundos
-        if (now - timestamp < fifteenMinutes) {
+        const oneHour = 60 * 60 * 1000; // 1 hora en milisegundos
+        if (now - timestamp < oneHour) {
             isWalletConnected = true;
+            currentWallet = address;
             document.getElementById('wallet-address').textContent = `Wallet: ${address}`;
             document.getElementById('connect-wallet').disabled = true;
             document.getElementById('status').textContent = '¡Conectado! Hacé clics en la banana.';
+            loadClicks(); // Cargar clics guardados
         } else {
-            localStorage.removeItem('bananaClickerSession'); // Expiró
+            localStorage.removeItem('bananaClickerSession');
+            resetClicks();
         }
+    }
+}
+
+// Cargar clics desde localStorage
+function loadClicks() {
+    const clickData = localStorage.getItem(`bananaClicks_${currentWallet}`);
+    if (clickData) {
+        const { clicks: savedClicks, hourStart } = JSON.parse(clickData);
+        const now = new Date();
+        const currentHour = Math.floor(now.getTime() / (60 * 60 * 1000));
+        if (hourStart === currentHour) {
+            clicks = savedClicks;
+            document.getElementById('clicks').textContent = `Clics: ${clicks}`;
+        } else {
+            resetClicks();
+        }
+    }
+}
+
+// Guardar clics en localStorage
+function saveClicks() {
+    if (currentWallet) {
+        const now = new Date();
+        const hourStart = Math.floor(now.getTime() / (60 * 60 * 1000));
+        localStorage.setItem(`bananaClicks_${currentWallet}`, JSON.stringify({
+            clicks: clicks,
+            hourStart: hourStart
+        }));
+    }
+}
+
+// Resetear clics
+function resetClicks() {
+    clicks = 0;
+    document.getElementById('clicks').textContent = `Clics: ${clicks}`;
+    if (currentWallet) {
+        saveClicks();
     }
 }
 
@@ -324,8 +365,7 @@ function startTimer() {
         if (timeLeft <= 0) {
             timeLeft = 3600;
             document.getElementById('status').textContent = '¡Hora terminada! Clics reiniciados.';
-            clicks = 0;
-            document.getElementById('clicks').textContent = `Clics: ${clicks}`;
+            resetClicks();
         }
     }, 1000);
 }
@@ -347,14 +387,15 @@ document.getElementById('connect-wallet').addEventListener('click', async () => 
             console.log('Firma:', signature);
 
             isWalletConnected = true;
+            currentWallet = address;
             document.getElementById('connect-wallet').disabled = true;
             document.getElementById('status').textContent = '¡Conectado! Hacé clics en la banana.';
 
-            // Guardar sesión en localStorage
             localStorage.setItem('bananaClickerSession', JSON.stringify({
                 address: address,
                 timestamp: Date.now()
             }));
+            loadClicks();
         } catch (error) {
             console.error('Error conectando Ronin Wallet:', error);
             alert('Error al conectar Ronin Wallet. Revisá la consola.');
@@ -377,10 +418,12 @@ banana.addEventListener('click', () => {
     }
     clicks++;
     document.getElementById('clicks').textContent = `Clics: ${clicks}`;
+    saveClicks();
     
     if (clicks >= 10000) {
         document.getElementById('status').textContent = '¡Ganaste un ticket! (Próximamente en el contrato)';
         clicks = 0;
+        saveClicks();
     }
 
     const x = Math.random() * containerWidth;
