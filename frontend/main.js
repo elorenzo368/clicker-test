@@ -4,13 +4,11 @@ let isWalletConnected = false;
 let timerInterval;
 let currentWallet = null;
 
-// Funktion para detectar Ronin Wallet
 function isRoninInstalled() {
     const hasRonin = window.ronin && (window.ronin.ethereum || window.ronin.provider);
     return hasRonin;
 }
 
-// Verificar y restaurar sesión previa
 function checkSession() {
     const sessionData = localStorage.getItem('bananaClickerSession');
     if (sessionData) {
@@ -25,7 +23,7 @@ function checkSession() {
             document.getElementById('logout').disabled = false;
             document.getElementById('status').textContent = '¡Conectado! Hacé clics en la banana.';
             loadClicks();
-            validateWallet(address); // Validar al restaurar sesión
+            validateWallet(address);
         } else {
             localStorage.removeItem('bananaClickerSession');
             resetClicks();
@@ -33,7 +31,6 @@ function checkSession() {
     }
 }
 
-// Cargar clics desde localStorage
 function loadClicks() {
     const clickData = localStorage.getItem(`bananaClicks_${currentWallet}`);
     if (clickData) {
@@ -51,7 +48,6 @@ function loadClicks() {
     document.getElementById('clicks').textContent = `Clics: ${clicks}`;
 }
 
-// Guardar clics en localStorage
 function saveClicks() {
     if (currentWallet) {
         const now = new Date();
@@ -63,7 +59,6 @@ function saveClicks() {
     }
 }
 
-// Resetear clics
 function resetClicks() {
     clicks = 0;
     document.getElementById('clicks').textContent = `Clics: ${clicks}`;
@@ -72,12 +67,21 @@ function resetClicks() {
     }
 }
 
-// Validar wallet con el backend
 async function validateWallet(address) {
     const message = `Login a Banana Clicker - ${Date.now()}`;
     const provider = new ethers.providers.Web3Provider(window.ronin.ethereum || window.ronin.provider);
     const signer = provider.getSigner();
-    const signature = await signer.signMessage(message);
+    let signature;
+    try {
+        signature = await signer.signMessage(message);
+    } catch (error) {
+        if (error.code === 4001) {
+            document.getElementById('status').textContent = 'Conexión rechazada por el usuario.';
+            logout();
+            return;
+        }
+        throw error;
+    }
 
     const response = await fetch('http://localhost:3000/validate', {
         method: 'POST',
@@ -86,19 +90,18 @@ async function validateWallet(address) {
             address,
             signature,
             message,
-            ip: 'client-ip' // Por ahora un placeholder, lo obtendremos del servidor después
+            ip: 'client-ip' // Placeholder
         })
     });
 
     const result = await response.json();
     if (!result.success) {
         console.error('Validación fallida:', result.error);
-        document.getElementById('status').textContent = 'Error al validar wallet.';
-        logout(); // Desconectar si falla
+        document.getElementById('status').textContent = 'Error al validar wallet: ' + result.error;
+        logout();
     }
 }
 
-// Enviar clic al backend
 async function registerClick() {
     const response = await fetch('http://localhost:3000/click', {
         method: 'POST',
@@ -115,7 +118,6 @@ async function registerClick() {
     return true;
 }
 
-// Calcular segundos restantes hasta la próxima hora
 function getSecondsUntilNextHour() {
     const now = new Date();
     const minutes = now.getMinutes();
@@ -125,14 +127,12 @@ function getSecondsUntilNextHour() {
     return secondsInHour - secondsPassed;
 }
 
-// Formatear tiempo restante
 function formatTime(seconds) {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m < 10 ? '0' + m : m}:${s < 10 ? '0' + s : s}`;
 }
 
-// Iniciar temporizador global
 function startTimer() {
     if (timerInterval) clearInterval(timerInterval);
     let timeLeft = getSecondsUntilNextHour();
@@ -149,7 +149,6 @@ function startTimer() {
     }, 1000);
 }
 
-// Conectar exclusivamente Ronin Wallet
 document.getElementById('connect-wallet').addEventListener('click', async () => {
     console.log('Botón clicado, intentando conectar...');
     if (isRoninInstalled()) {
@@ -161,7 +160,7 @@ document.getElementById('connect-wallet').addEventListener('click', async () => 
             const address = await signer.getAddress();
             document.getElementById('wallet-address').textContent = `Wallet: ${address}`;
 
-            await validateWallet(address); // Validar con backend
+            await validateWallet(address);
 
             isWalletConnected = true;
             currentWallet = address;
@@ -176,14 +175,15 @@ document.getElementById('connect-wallet').addEventListener('click', async () => 
             loadClicks();
         } catch (error) {
             console.error('Error conectando Ronin Wallet:', error);
-            alert('Error al conectar Ronin Wallet. Revisá la consola.');
+            if (error.code !== 4001) { // Ignorar rechazo del usuario aquí
+                alert('Error al conectar Ronin Wallet. Revisá la consola.');
+            }
         }
     } else {
         alert('Por favor, asegurate de que Ronin Wallet esté instalada, activa y actualizada.');
     }
 });
 
-// Desconectar wallet
 function logout() {
     isWalletConnected = false;
     currentWallet = null;
@@ -198,7 +198,6 @@ function logout() {
 
 document.getElementById('logout').addEventListener('click', logout);
 
-// Contar clics y mover banana dentro del contenedor
 const banana = document.getElementById('banana');
 const gameContainer = document.getElementById('game-container');
 const containerWidth = gameContainer.offsetWidth - banana.offsetWidth;
@@ -228,6 +227,5 @@ banana.addEventListener('click', async () => {
     banana.style.top = `${y}px`;
 });
 
-// Iniciar el temporizador y verificar sesión al cargar
 startTimer();
 checkSession();

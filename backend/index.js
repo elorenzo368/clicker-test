@@ -1,11 +1,16 @@
 const express = require('express');
+const cors = require('cors');
 const ethers = require('ethers');
 const app = express();
 const port = 3000;
 
-// Almacenar IP por wallet (en memoria por ahora, luego usaremos una DB)
+// Almacenar IP por wallet (en memoria por ahora)
 const walletIps = new Map();
 
+// Habilitar CORS para permitir solicitudes desde el frontend
+app.use(cors({
+    origin: 'http://127.0.0.1:8080' // Origen de live-server
+}));
 app.use(express.json());
 
 // Endpoint para validar firma y registrar IP
@@ -17,19 +22,16 @@ app.post('/validate', (req, res) => {
     }
 
     try {
-        // Verificar la firma
         const recoveredAddress = ethers.utils.verifyMessage(message, signature);
         if (recoveredAddress.toLowerCase() !== address.toLowerCase()) {
             return res.status(401).json({ error: 'Firma inválida' });
         }
 
-        // Verificar IP
         const existingIp = walletIps.get(address);
         if (existingIp && existingIp !== ip) {
             return res.status(403).json({ error: 'Esta wallet ya está asociada a otra IP' });
         }
 
-        // Registrar IP si no existe
         if (!existingIp) {
             walletIps.set(address, ip);
         }
@@ -41,13 +43,12 @@ app.post('/validate', (req, res) => {
     }
 });
 
-// Endpoint para registrar clics (placeholder por ahora)
+// Endpoint para registrar clics
 app.post('/click', (req, res) => {
     const { address } = req.body;
     if (!walletIps.has(address)) {
         return res.status(401).json({ error: 'Wallet no validada' });
     }
-    // Aquí iría la lógica de clics, por ahora solo confirmamos
     res.json({ success: true });
 });
 
