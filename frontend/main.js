@@ -1,4 +1,5 @@
 let clicks = 0;
+const ethers = require('ethers');
 
 // Función para detectar Ronin Wallet
 function isRoninInstalled() {
