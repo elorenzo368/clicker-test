@@ -290,8 +290,9 @@ function checkSession() {
             currentWallet = address;
             document.getElementById('wallet-address').textContent = `Wallet: ${address}`;
             document.getElementById('connect-wallet').disabled = true;
+            document.getElementById('logout').disabled = false;
             document.getElementById('status').textContent = '¡Conectado! Hacé clics en la banana.';
-            loadClicks(); // Cargar clics guardados
+            loadClicks();
         } else {
             localStorage.removeItem('bananaClickerSession');
             resetClicks();
@@ -389,6 +390,7 @@ document.getElementById('connect-wallet').addEventListener('click', async () => 
             isWalletConnected = true;
             currentWallet = address;
             document.getElementById('connect-wallet').disabled = true;
+            document.getElementById('logout').disabled = false;
             document.getElementById('status').textContent = '¡Conectado! Hacé clics en la banana.';
 
             localStorage.setItem('bananaClickerSession', JSON.stringify({
@@ -403,6 +405,19 @@ document.getElementById('connect-wallet').addEventListener('click', async () => 
     } else {
         alert('Por favor, asegurate de que Ronin Wallet esté instalada, activa y actualizada.');
     }
+});
+
+// Desconectar wallet
+document.getElementById('logout').addEventListener('click', () => {
+    isWalletConnected = false;
+    currentWallet = null;
+    localStorage.removeItem('bananaClickerSession');
+    document.getElementById('wallet-address').textContent = 'Wallet: No conectada';
+    document.getElementById('connect-wallet').disabled = false;
+    document.getElementById('logout').disabled = true;
+    document.getElementById('status').textContent = 'Conectá tu wallet para empezar.';
+    document.getElementById('clicks').textContent = `Clicks: 0`;
+    // No tocamos los clics, se mantienen en localStorage
 });
 
 // Contar clics y mover banana dentro del contenedor

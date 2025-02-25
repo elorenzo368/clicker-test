@@ -54,7 +54,8 @@
       text-align: center;
     }
 
-    #connect-wallet {
+    #connect-wallet,
+    #logout {
       background: #ffd700;
       border: none;
       padding: 10px 20px;
@@ -62,13 +63,16 @@
       border-radius: 5px;
       cursor: pointer;
       transition: background 0.3s;
+      margin: 5px;
     }
 
-    #connect-wallet:hover {
+    #connect-wallet:hover,
+    #logout:hover {
       background: #ffcc00;
     }
 
-    #connect-wallet:disabled {
+    #connect-wallet:disabled,
+    #logout:disabled {
       background: #ccc;
       cursor: not-allowed;
     }
@@ -96,6 +100,7 @@
   </div>
   <div id="info-panel">
     <button id="connect-wallet">Conectar Wallet</button>
+    <button id="logout" disabled>Desconectar</button>
     <p id="wallet-address">Wallet: No conectada</p>
     <p id="clicks">Clics: 0</p>
     <p id="timer">Tiempo restante: Cargando...</p>
